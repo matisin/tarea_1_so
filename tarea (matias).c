@@ -7,12 +7,11 @@
 
 #define   buffer_n 100
 
-void parser(){
+void parser(char s2[]){
 	char *s1 = malloc(250);
-	char *s2 = malloc(250);
 	char *copia;
 
-	fgets(s2, 250, stdin);
+
 	printf("El string original es: %s\n", s2);
 
 
@@ -43,13 +42,14 @@ int main (int argc, char *argv[]) {
 
 	system("clear");
 
-	parser(); //aqui ingresamos el comando
 
 	while(1) {
 
 		printPrompt();//imprime el 
 
 		fgets(input,buffer_n*sizeof(char),stdin);//leemos la entrada
+		parser(input); //aqui ingresamos el comando
+
 
 		if(*input == '\n') { //se compara el primer caracter primero
 			continue;
@@ -59,7 +59,7 @@ int main (int argc, char *argv[]) {
 
 	free(input);
 
-	printf("Donoso culiao\n")
+	printf("Donoso culiao\n");
 }
 
 
