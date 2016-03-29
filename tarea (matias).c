@@ -42,10 +42,7 @@ int main (int argc, char *argv[]) {
 
 	system("clear");
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 2bac749c2bdabfa9b72f69233d489e33b0cae8ca
 
 	while(1) {
 
