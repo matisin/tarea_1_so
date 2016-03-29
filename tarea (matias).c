@@ -1,8 +1,8 @@
 #include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
+
+
 #include <stdlib.h>
-#include <sys/wait.h>
+
 #include <string.h>
 
 #define   buffer_n 100
@@ -20,8 +20,9 @@ int main (int argc, char *argv[]) {
 	char *input;
 	input = (char *) malloc(buffer_n*sizeof(char));
 
-	while(1) {
+	system("clear");
 
+	while(1) {
 
 		printPrompt();//imprime el 
 
@@ -32,5 +33,9 @@ int main (int argc, char *argv[]) {
 		}
 
 	}
+
 	free(input);
 }
+
+
+
