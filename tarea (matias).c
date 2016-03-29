@@ -7,7 +7,7 @@
 
 #define   buffer_n 100
 
-void(){
+void parser(){
 	char *s1 = malloc(250);
 	char *s2 = malloc(250);
 	char *copia;
@@ -42,6 +42,8 @@ int main (int argc, char *argv[]) {
 	input = (char *) malloc(buffer_n*sizeof(char));
 
 	system("clear");
+
+	parser(); //aqui ingresamos el comando
 
 	while(1) {
 
