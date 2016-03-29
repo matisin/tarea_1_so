@@ -43,11 +43,12 @@ int main (int argc, char *argv[]) {
 
 	system("clear");
 
-	parser(); //aqui ingresamos el comando
+
 
 	while(1) {
 
 		printPrompt();//imprime el 
+
 
 		fgets(input,buffer_n*sizeof(char),stdin);//leemos la entrada
 
@@ -59,7 +60,7 @@ int main (int argc, char *argv[]) {
 
 	free(input);
 
-	printf("Donoso culiao\n")
+	printf("Donoso culiao\n");
 }
 
 
