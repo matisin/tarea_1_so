@@ -42,10 +42,15 @@ int main (int argc, char *argv[]) {
 
 	system("clear");
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2bac749c2bdabfa9b72f69233d489e33b0cae8ca
 
 	while(1) {
 
 		printPrompt();//imprime el 
+
 
 		fgets(input,buffer_n*sizeof(char),stdin);//leemos la entrada
 		parser(input); //aqui ingresamos el comando
