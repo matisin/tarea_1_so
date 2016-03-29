@@ -28,13 +28,15 @@ int main (int argc, char *argv[]) {
 
 		fgets(input,buffer_n*sizeof(char),stdin);//leemos la entrada
 
-		if(*input == '\n') { // se compara el primer caracter primero
+		if(*input == '\n') { //se compara el primer caracter primero
 			continue;
 		}
 
 	}
 
 	free(input);
+
+	printf("Donoso culiao\n")
 }
 
 
