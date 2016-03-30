@@ -5,23 +5,21 @@
 
 #include <string.h>
 
-#define   buffer_n 100
+#define   buffer_n 1000
 
-char **parser(char s2[]){
-	char *copia;
-	char **tokens = malloc(buffer_n*sizeof(char));
-	printf("El string original es: %s\n", s2);
-	char delim[]=" \t";
-	char *token;
-	copia = strdup(s2);
-	token = strtok(s2,delim);
-	printf("%s\n", token);
-	*(tokens) =  token;
-	int i = 1;
-	while(token = strtok(NULL, delim))
-	{
-		printf("%s\n", token);
+
+// parsea un string de entrada
+//
+// return char **
+
+char **parser(char string[]){	
+	char **tokens = malloc(buffer_n*sizeof(char));	
+	char *delim = " \t\n";
+	char *token =  strtok(string,delim);	
+	int i = 0;
+	while(token){			
 		*(tokens+i) =  token;
+		token = strtok(NULL, delim);
 		i++;
 	}
 	return tokens;
@@ -30,6 +28,7 @@ char **parser(char s2[]){
 // imprime el prompt
 //
 // return void
+
 void printPrompt(){
 
 	printf("minishell$ ");
@@ -46,7 +45,7 @@ int main (int argc, char *argv[]) {
 	system("clear");
 
 	while(1) {
-		hay_pipe = 0;
+		hay_pipe = 0;//se asume que no hay pipe al principio
 
 		printPrompt();//imprime el prompt
 
@@ -56,8 +55,16 @@ int main (int argc, char *argv[]) {
 			continue;
 		}
 
-		token=parser(input); //aqui ingresamos el comando
-		printf("%s\n",*(token) );
+		token=parser(input); //se guardan los tokens
+
+		for(i = 0 ;i < buffer_n*sizeof(char) ; i++){
+
+			if(*(token+i)==NULL){
+				break;
+			}
+			printf("%s \n",*(token+i));
+			
+		}
 
 		for(i = 0; i < buffer_n ; i++ ){
 			if(*(input+i)=='|'){//recoremos el input
