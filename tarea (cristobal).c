@@ -72,7 +72,7 @@ int main (int argc, char *argv[]) {
 
 		}else{
 
-			else{
+			
 
 				pid_t pid = fork();
 				//REVISA SI FORK FALLA
@@ -97,7 +97,7 @@ int main (int argc, char *argv[]) {
 					(void)waitpid(pid, &status, 0); //Esto hace que el padre espere que termine el hijo.
 					//lo que haga el proceso padre tiene que ir despues de esta llamada. 
 				}
-			}
+			
 		}
 
 		//reseteamos el input y los tokens.
