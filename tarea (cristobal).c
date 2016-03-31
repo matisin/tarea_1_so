@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define   buffer_n 1000
 
@@ -26,6 +27,13 @@ int parser(char *string,char **tokens){
 	}
 
 	return hay_pipe;
+}
+
+void checkcommand(char **tokens){
+	char *args[] = {tokens[0], tokens[1],tokens[2],(char *) 0 };
+	char *fargs[] = strcat("/bin/" , tokens[0]);
+	//execv(fargs, args);
+	printf("%s\n", args[0]);
 }
 
 // imprime el prompt
@@ -55,24 +63,23 @@ int main (int argc, char *argv[]) {
 			continue;
 		}			
 
-		hay_pipe=parser(input,tokens); //se guardan los tokens 
+		hay_pipe = parser(input,tokens); //se guardan los tokens 
 		
 		//Para imprimir tokens
-		for(i = 0 ;i < buffer_n*sizeof(char) ; i++){
+		/*for(i = 0 ;i < buffer_n*sizeof(char) ; i++){
 
 			if(*(tokens+i)==NULL){
 				break;
 			}
 			printf("%s \n",*(tokens+i));
-		}		
+		}*/		
+	
 
 		if(hay_pipe){
 
 			printf("Hay pipe!\n");
 
 		}else{
-
-			
 
 				pid_t pid = fork();
 				//REVISA SI FORK FALLA
@@ -85,7 +92,7 @@ int main (int argc, char *argv[]) {
 
 				// ESTE ES EL PROCESO HIJO
 				else if (pid == 0) {
-
+					checkcommand(tokens);
 					printf("Hello from the child process!\n");
 					exit(EXIT_SUCCESS);
 				}
@@ -95,7 +102,8 @@ int main (int argc, char *argv[]) {
 
 					int status;
 					(void)waitpid(pid, &status, 0); //Esto hace que el padre espere que termine el hijo.
-					//lo que haga el proceso padre tiene que ir despues de esta llamada. 
+					//lo que haga el proceso padre tiene que ir despues de esta llamada.
+					printf("Hola soy el papá\n"); 
 				}
 			
 		}
