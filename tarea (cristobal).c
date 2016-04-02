@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #define   buffer_n 1000
+#define   SIZE 512
 
 // parsea un string de entrada
 //
@@ -28,12 +29,13 @@ int parser(char *string,char **tokens){
 
 	return hay_pipe;
 }
-
+/*
+FUNCION QUE DEVUELVE LA EJECUCIÓN DE LOS COMANDOS, SOLO AQUELLOS
+QUE SE ENCUENTREN EN /BIN, OSEA EJECUTABLES, POR EJ: ECHO, LS...
+*/
 void checkcommand(char **tokens){
 	char *args[] = {tokens[0], tokens[1],tokens[2],(char *) 0 };
-	char *fargs[] = strcat("/bin/" , tokens[0]);
-	//execv(fargs, args);
-	printf("%s\n", args[0]);
+	execvp(tokens[0],args);	
 }
 
 // imprime el prompt
@@ -45,11 +47,12 @@ void printPrompt(){
 }
 
 int main (int argc, char *argv[]) {
-	
+	pid_t pid;
 	char *input = (char *) malloc(buffer_n*sizeof(char));
 	char **tokens = (char **) malloc(buffer_n*sizeof(char));
-	int hay_pipe; 
-	int i;
+	int p[2],hay_pipe,i,readbytes;
+	pipe(p);
+	char buffer[SIZE];
 
 	system("clear");
 
@@ -65,19 +68,27 @@ int main (int argc, char *argv[]) {
 
 		hay_pipe = parser(input,tokens); //se guardan los tokens 
 		
-		//Para imprimir tokens
-		/*for(i = 0 ;i < buffer_n*sizeof(char) ; i++){
-
-			if(*(tokens+i)==NULL){
-				break;
-			}
-			printf("%s \n",*(tokens+i));
-		}*/		
-	
 
 		if(hay_pipe){
 
-			printf("Hay pipe!\n");
+			if ( (pid=fork()) == 0 )
+  			{ // hijo
+    			close( p[1] ); /* cerramos el lado de escritura del pipe */
+ 				char leidos;
+ 				while((leidos = read(p[0], &tokens[i], sizeof tokens[i]))>0)
+ 					printf("%d Recibido %s\n", getpid(), tokens[i]);
+  			}
+  		else
+  			{ // padre
+    			close( p[0] ); /* cerramos el lado de lectura del pipe */
+ 
+				for (i = 0; i < sizeof tokens && tokens[i] != NULL; i++)
+				{
+					write(p[1], &tokens[i], sizeof tokens[i]);
+					printf("%d Escribiendo %s\n", getpid(), tokens[i]);
+					sleep(1);
+				}
+  			}
 
 		}else{
 
@@ -93,6 +104,7 @@ int main (int argc, char *argv[]) {
 				// ESTE ES EL PROCESO HIJO
 				else if (pid == 0) {
 					checkcommand(tokens);
+
 					printf("Hello from the child process!\n");
 					exit(EXIT_SUCCESS);
 				}
