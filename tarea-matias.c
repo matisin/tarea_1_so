@@ -76,7 +76,7 @@ int main (int argc, char *argv[]) {
 	//Se crea la carpeta log.
 	pid = fork();
 	if(pid == 0){		
-		execl("mkdir","Log");
+		execl("/bin/mkdir","mkdir","Log",NULL);
 	}else{
 		//se espera al hijo para continuar
 		int status;
@@ -123,7 +123,7 @@ int main (int argc, char *argv[]) {
 					close(p[1]);//cerramos la salida del pipe
 
 					//se abre el archivo que guarda el log temporalmente
-					temp = open("logtemp",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);				
+					temp = open(".logtemp",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);				
 					dup2(temp,1);//se envia la salida al archivo
 					close(temp);									
 					checkcommand(tokens_2); 
@@ -136,7 +136,7 @@ int main (int argc, char *argv[]) {
 					int status;
 					(void)waitpid(pid, &status, 0);
 					mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);		
-					temp = open("logtemp",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+					temp = open(".logtemp",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 					char c;
 					while (read(temp, &c, sizeof(char)) != 0) {
 						//se copia el contenido de el log temporal al log y a la salida estandar.
@@ -147,7 +147,7 @@ int main (int argc, char *argv[]) {
   					//se cierran los archivos y se borra el log temporal.
   					close(temp);
   					close(mishell_log);
-  					remove("logtemp");
+  					remove(".logtemp");
 					
 				}								
 			}
@@ -165,7 +165,7 @@ int main (int argc, char *argv[]) {
 			else if (pid == 0) { //hijo
 
 				//se abre el archivo que guarda el log temporalmente
-				temp = open("logtemp",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);				
+				temp = open(".logtemp",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);				
 				dup2(temp,1);//se envia la salida al archivo
 				close(temp);
 				//se ejecuta el comando
@@ -178,7 +178,7 @@ int main (int argc, char *argv[]) {
 				int status;
 				(void)waitpid(pid, &status, 0); //Esto hace que el padre espere que termine el hijo.
 				mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);		
-				temp = open("logtemp",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+				temp = open(".logtemp",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 				char c;
 				while (read(temp, &c, sizeof(char)) != 0) {
 					//se copia el contenido de el log temporal al log y a la salida estandar.
@@ -189,7 +189,7 @@ int main (int argc, char *argv[]) {
   				//se cierran los archivos y se borra el log temporal.
   				close(temp);
   				close(mishell_log);
-  				remove("logtemp"); 			
+  				remove(".logtemp"); 			
 				
 			}			
 		}
