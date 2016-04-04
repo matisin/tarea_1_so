@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <sys/stat.h> 
 #include <fcntl.h>
-
+#include <time.h>
 
 #define   buffer_n 1000
 #define   SIZE 512
@@ -68,7 +68,8 @@ int main (int argc, char *argv[]) {
 	char *input = (char *) malloc(buffer_n*sizeof(char));
 	char **tokens = (char **) malloc(buffer_n*sizeof(char));
 	char **tokens_2 = (char **) malloc(buffer_n*sizeof(char));
-
+	clock_t begin, end;
+	double time_spent;
 	int p[2],hay_pipe,i,temp,mishell_log;
 
 	system("clear");
@@ -76,7 +77,7 @@ int main (int argc, char *argv[]) {
 	//Se crea la carpeta log.
 	pid = fork();
 	if(pid == 0){		
-		execl("mkdir","Log");
+		execl("/bin/mkdir","mkdir","Log",NULL);
 	}else{
 		//se espera al hijo para continuar
 		int status;
@@ -101,7 +102,7 @@ int main (int argc, char *argv[]) {
 		hay_pipe = parser(input,tokens,tokens_2); //se guardan los tokens y se retorna si hay pipe o no	
 
 		if(hay_pipe){	
-
+			begin = clock();
 			pipe(p);//creamos el pipe
 			pid = fork();
 			if(pid == 0){	
@@ -144,6 +145,9 @@ int main (int argc, char *argv[]) {
     					write(mishell_log,&c,sizeof(char));
     				
   					}
+  				end = clock();
+				time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+  				printf("\nTiempo: %f\n", time_spent);
   					//se cierran los archivos y se borra el log temporal.
   					close(temp);
   					close(mishell_log);
@@ -154,7 +158,7 @@ int main (int argc, char *argv[]) {
 		}			
 
 		else{			
-
+			begin = clock();
 			pid = fork();
 
 			if (pid == -1) { //si falla el fork
@@ -186,6 +190,9 @@ int main (int argc, char *argv[]) {
     				write(mishell_log,&c,sizeof(char));
     				
   				}
+  				end = clock();
+				time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+  				printf("\nTiempo: %f\n", time_spent);
   				//se cierran los archivos y se borra el log temporal.
   				close(temp);
   				close(mishell_log);
