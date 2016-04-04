@@ -4,6 +4,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h> 
+#include <fcntl.h>
+
 
 #define   buffer_n 1000
 #define   SIZE 512
@@ -45,10 +48,10 @@ FUNCION QUE DEVUELVE LA EJECUCIÓN DE LOS COMANDOS, SOLO AQUELLOS
 QUE SE ENCUENTREN EN /BIN, OSEA EJECUTABLES, POR EJ: ECHO, LS...
 */
 void checkcommand(char **tokens){
-	char *args[] = {tokens[0], tokens[1],tokens[2],(char *) 0 };
+	char *args[] = {tokens[0], tokens[1],tokens[2],tokens[3],(char *) 0 };
 	execvp(tokens[0],args);
-	printf("Command execute error: %s\n", strerror(errno));	
-	printf("%d\n",123 );
+	printf("Command execute error in %s: %s\n", tokens[0],strerror(errno) );	
+	
 }
 
 // imprime el prompt
@@ -73,6 +76,22 @@ int main (int argc, char *argv[]) {
  //	dup2(out,0);
  	//close(out);
 	system("clear");
+	pid = fork();
+	if(pid == 0){
+		char *logs[] = {
+        "mkdir",       
+        "Log",
+        NULL
+    	};
+		execvp(logs[0],logs);
+	}else{
+		int status;
+		(void)waitpid(pid, &status, 0);
+	}
+	out = open("Log/mishel.log",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+ 	
+ 
+
 
 	while(1) {		
 
@@ -94,7 +113,7 @@ int main (int argc, char *argv[]) {
 					
 				dup2(p[1],1);
 				close(p[1]);
-				close(p[0]);
+				
 				checkcommand(tokens);
 				exit(EXIT_FAILURE);
 			}else{
@@ -105,7 +124,7 @@ int main (int argc, char *argv[]) {
 				if(pid == 0){
 					dup2(p[0],0);
 					close(p[0]);
-					close(p[1]);					
+									
 					checkcommand(tokens_2); 
 					exit(EXIT_FAILURE);
 				}else{
@@ -120,6 +139,8 @@ int main (int argc, char *argv[]) {
 
 		else{
 
+			pipe(p);
+
 			pid = fork();
 			//REVISA SI FORK FALLA
 
@@ -130,6 +151,8 @@ int main (int argc, char *argv[]) {
 
 			// ESTE ES EL PROCESO HIJO
 			else if (pid == 0) {
+				dup2(out,1);
+				close(out);
 				checkcommand(tokens);
 			
 				exit(EXIT_FAILURE);
