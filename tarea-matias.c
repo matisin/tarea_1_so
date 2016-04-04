@@ -186,16 +186,18 @@ int main (int argc, char *argv[]) {
 				int status;
 				(void)waitpid(pid, &status, 0); //Esto hace que el padre espere que termine el hijo.
 								//lo que haga el proceso padre tiene que ir despues de esta llamada.
-				/*dup2(stdout_copy,1);
-				close(stdout_copy);
-				printf("%s",out);
-				write(out)*/
+				write(wea,input,strlen(input));
+
+			
 				out = open("Logstio",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 				char c;
 				while (read(out, &c, sizeof(char)) != 0) {
     				printf("%c", c);
+    				write(wea,&c,sizeof(char));
+
     				
-  				}close(out);
+  				}
+  				close(out);
   				
 				
 			}
