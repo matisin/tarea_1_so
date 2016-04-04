@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #define   buffer_n 1000
@@ -9,7 +10,7 @@
 // parsea un string de entrada
 //
 // return char **
-int parser(char *string,char **tokens){	
+int parser(char *string,char **tokens_1,char **tokens_2){	
 
 	int hay_pipe = 0;
 	char *delim = " \t\n";
@@ -17,11 +18,15 @@ int parser(char *string,char **tokens){
 	int i = 0;
 
 	while(token){			
-		*(tokens+i) =  token;
+		
 		if(!hay_pipe){
 			if(*token=='|'){
 				hay_pipe=1;
+			}else {
+				*(tokens_1+i) =  token;
 			}
+		}else{
+			*(tokens_2+i) =  token;
 		}
 		token = strtok(NULL, delim);
 		i++;
