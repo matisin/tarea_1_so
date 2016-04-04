@@ -63,48 +63,27 @@ void printPrompt(){
 }
 
 int main (int argc, char *argv[]) {
-	pid_t pid,pid2;
+	pid_t pid;
+
 	char *input = (char *) malloc(buffer_n*sizeof(char));
 	char **tokens = (char **) malloc(buffer_n*sizeof(char));
 	char **tokens_2 = (char **) malloc(buffer_n*sizeof(char));
-	int p[2],hay_pipe,i,readbytes,out,wea;
-	int log_[2];
-	
-	char buffer[SIZE];
-	int status = 0;
 
-
-
-	
-	//para copiar el stdin y out.
-	/*int stdin_copy = dup(0);
-	int stdout_copy = dup(1);
-	close(0);
-	close(1);*/
+	int p[2],hay_pipe,i,temp,mishell_log;
 
 	system("clear");
+
+	//Se crea la carpeta log.
 	pid = fork();
-	if(pid == 0){
-		char *logs[] = {
-        "mkdir",       
-        "Log",
-        NULL
-    	};
-		execvp(logs[0],logs);
+	if(pid == 0){		
+		execl("mkdir","Log");
 	}else{
+		//se espera al hijo para continuar
 		int status;
 		(void)waitpid(pid, &status, 0);
 	}
-	wea= open("Log/mishel.log",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 
- 	out = open("Logstio",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
- 
-
-
-	while(1) {		
-
-
- 	
+	while(1) {		 	
 		
 		printPrompt();//imprime el prompt
 
@@ -114,29 +93,39 @@ int main (int argc, char *argv[]) {
 			continue;
 		}			
 
-		hay_pipe = parser(input,tokens,tokens_2); //se guardan los tokens 
-		
+		mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);	
+		write(mishell_log,"@",1);
+		write(mishell_log,input,strlen(input)); //se guarda el comando leído en el log
+		close(mishell_log);
+
+		hay_pipe = parser(input,tokens,tokens_2); //se guardan los tokens y se retorna si hay pipe o no	
 
 		if(hay_pipe){	
-			pipe(p);
+
+			pipe(p);//creamos el pipe
 			pid = fork();
 			if(pid == 0){	
 					
-				dup2(p[1],1);			
-				close(p[0]);				
-				checkcommand(tokens);
+				dup2(p[1],1);//se redirecciona la salida del hijo que se ejecuta primero al pipe.	
+				close(p[0]);//cerramos la entrada del pipe.		
+				checkcommand(tokens);//ejecutamos los comandos.
 				exit(EXIT_FAILURE);
 
 			}else{
 
 				int status;
-				(void)waitpid(pid, &status, 0);
-				pid = fork();
+				(void)waitpid(pid, &status, 0);//se espera al hijo
 
+				pid = fork();
 				if(pid == 0){
 
-					dup2(p[0],0);				
-					close(p[1]);									
+					dup2(p[0],0);//se redirecciona la entra del hijo que se ejecuta segundo al pipe.			
+					close(p[1]);//cerramos la salida del pipe
+
+					//se abre el archivo que guarda el log temporalmente
+					temp = open("logtemp",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);				
+					dup2(temp,1);//se envia la salida al archivo
+					close(temp);									
 					checkcommand(tokens_2); 
 					exit(EXIT_FAILURE);
 
@@ -146,62 +135,63 @@ int main (int argc, char *argv[]) {
 					close(p[1]);
 					int status;
 					(void)waitpid(pid, &status, 0);
+					mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);		
+					temp = open("logtemp",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+					char c;
+					while (read(temp, &c, sizeof(char)) != 0) {
+						//se copia el contenido de el log temporal al log y a la salida estandar.
+    					printf("%c", c);
+    					write(mishell_log,&c,sizeof(char));
+    				
+  					}
+  					//se cierran los archivos y se borra el log temporal.
+  					close(temp);
+  					close(mishell_log);
+  					remove("logtemp");
 					
 				}								
 			}
 		}			
 
-		else{
-
-			/*int stdout_copy = dup(1);
-
-			close(1);*/
-			
+		else{			
 
 			pid = fork();
-			//REVISA SI FORK FALLA
 
-
-			if (pid == -1) {
+			if (pid == -1) { //si falla el fork
 				perror("fork failed");
 				exit(EXIT_FAILURE);
 			}
-
-			// ESTE ES EL PROCESO HIJO
-			else if (pid == 0) {
-				out = open("Logstio",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
-				
-				dup2(out,1);
-				close(out);
-
-				checkcommand(tokens);
 			
-				exit(EXIT_FAILURE);
-					
-			}
+			else if (pid == 0) { //hijo
 
-			// ESTE ES EL PROCESO PADRE
-			else {		
+				//se abre el archivo que guarda el log temporalmente
+				temp = open("logtemp",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);				
+				dup2(temp,1);//se envia la salida al archivo
+				close(temp);
+				//se ejecuta el comando
+				checkcommand(tokens);				
+				exit(EXIT_FAILURE);					
+			}
+			
+			else {//padre
 
 				int status;
 				(void)waitpid(pid, &status, 0); //Esto hace que el padre espere que termine el hijo.
-								//lo que haga el proceso padre tiene que ir despues de esta llamada.
-				write(wea,input,strlen(input));
-
-			
-				out = open("Logstio",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+				mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);		
+				temp = open("logtemp",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 				char c;
-				while (read(out, &c, sizeof(char)) != 0) {
+				while (read(temp, &c, sizeof(char)) != 0) {
+					//se copia el contenido de el log temporal al log y a la salida estandar.
     				printf("%c", c);
-    				write(wea,&c,sizeof(char));
-
+    				write(mishell_log,&c,sizeof(char));
     				
   				}
-  				close(out);
-  				
+  				//se cierran los archivos y se borra el log temporal.
+  				close(temp);
+  				close(mishell_log);
+  				remove("logtemp"); 			
 				
-			}
-			
+			}			
 		}
 
 		//reseteamos el input y los tokens.
@@ -215,5 +205,5 @@ int main (int argc, char *argv[]) {
 	free(tokens);
 	free(tokens_2);
 
-	printf("Donoso culiao\n");
+	
 }
