@@ -1,30 +1,54 @@
 #include <stdio.h>
-
-
 #include <stdlib.h>
-
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#define   buffer_n 1000
+#define   SIZE 512
 
-#define   buffer_n 100
+// parsea un string de entrada
+//
+// return char **
+int parser(char *string,char **tokens,char **tokens_2){	
 
-char **parser(char s2[]){
-	char *copia;
-	char **tokens = malloc(buffer_n*sizeof(char));
-	printf("El string original es: %s\n", s2);
-	char delim[]=" \t";
-	char *token;
-	copia = strdup(s2);
-	token = strtok(s2,delim);
-	printf("%s\n", token);
-	*(tokens) =  token;
-	int i = 1;
-	while(token = strtok(NULL, delim))
-	{
-		printf("%s\n", token);
-		*(tokens+i) =  token;
+	int hay_pipe = 0;
+	char *delim = " \t\n";
+	char *token =  strtok(string,delim);	
+	int i = 0, j=0;
+
+	while(token){			
+		
+		if(!hay_pipe)
+		{
+			if(*token=='|')
+			{
+				hay_pipe=1;
+				
+			}else{
+				*(tokens+i) =  token;
+			}
+		}else{
+			*(tokens_2+j) =  token;
+			j++;
+		}
+		token = strtok(NULL, delim);
 		i++;
 	}
-	return tokens;
+
+
+	return hay_pipe;
+}
+
+/*
+FUNCION QUE DEVUELVE LA EJECUCIÓN DE LOS COMANDOS, SOLO AQUELLOS
+QUE SE ENCUENTREN EN /BIN, OSEA EJECUTABLES, POR EJ: ECHO, LS...
+*/
+void checkcommand(char **tokens){
+	char *args[] = {tokens[0], tokens[1],tokens[2],(char *) 0 };
+	int r = execvp(tokens[0],args);
+	printf("Command execute error: %s\n", strerror(errno));
+	
+
 }
 
 // imprime el prompt
@@ -36,17 +60,17 @@ void printPrompt(){
 }
 
 int main (int argc, char *argv[]) {
-
-	char *input,**token;
-	input = (char *) malloc(buffer_n*sizeof(char));
-	token = (char **) malloc(buffer_n*sizeof(char));
-	int hay_pipe ; 
-	int i;
+	pid_t pid, pid2;
+	char *input = (char *) malloc(buffer_n*sizeof(char));
+	char **tokens = (char **) malloc(buffer_n*sizeof(char));
+	char **tokens_2 = (char **) malloc(buffer_n*sizeof(char));
+	int p[2],hay_pipe,i,readbytes;
+	pipe(p);
+	char buffer[SIZE];
 
 	system("clear");
 
-	while(1) {
-		hay_pipe = 0;
+	while(1) {		
 
 		printPrompt();//imprime el prompt
 
@@ -54,47 +78,65 @@ int main (int argc, char *argv[]) {
 
 		if(*input == '\n') { //se compara el primer caracter primero
 			continue;
-		}
+		}			
 
-		token=parser(input); //aqui ingresamos el comando
-		printf("%s\n",*(token) );
+		hay_pipe = parser(input,tokens,tokens_2); //se guardan los tokens
+		
 
-		for(i = 0; i < buffer_n ; i++ ){
-			if(*(input+i)=='|'){//recoremos el input
-				hay_pipe = 1; //si es comando con pipe
-				break;
-			}
-		}
 		if(hay_pipe){
+			pid_t pid;
+			if (pid = fork()) {
+    			if (pid = fork()) {
+        			int status;
+					(void)waitpid(pid, &status, 0);
+    			}
+    			else{
+    				checkcommand(tokens_2);
+    			}
+			}
+			else{
+				checkcommand(tokens);
+			} 
 			
-		}else{
-			pid_t pid = fork();
 
-			//REVISA SI FORK FALLA
-			if (pid == -1) {
-				perror("fork failed");
-				exit(EXIT_FAILURE);
-			}
-			// ESTE ES EL PROCESO HIJO
-			else if (pid == 0) {
-				printf("Hello from the child process!\n");
-				_exit(EXIT_SUCCESS);
-			}
-			// ESTE ES EL PROCESO PADRE
-			else {				
-				int status;
-				(void)waitpid(pid, &status, 0); //Esto hace que el padre espere que termine el hijo.
-				//lo que haga el proceso padre tiene que ir despues de esta llamada. 
-			}
+		}else{
+
+				pid_t pid = fork();
+				//REVISA SI FORK FALLA
+
+				if (pid == -1) {
+
+					perror("fork failed");
+					exit(EXIT_FAILURE);
+				}
+
+				// ESTE ES EL PROCESO HIJO
+				else if (pid == 0) {
+					checkcommand(tokens);
+
+					printf("Hello from the child process!\n");
+					exit(EXIT_SUCCESS);
+				}
+
+				// ESTE ES EL PROCESO PADRE
+				else {			
+
+					int status;
+					(void)waitpid(pid, &status, 0); //Esto hace que el padre espere que termine el hijo.
+					//lo que haga el proceso padre tiene que ir despues de esta llamada.
+					printf("Hola soy el papá\n"); 
+				}
+			
 		}
+
+		//reseteamos el input y los tokens.
+		memset(input,0,buffer_n*sizeof(char));
+		memset(tokens,0,buffer_n*sizeof(char));
 
 	}
 
 	free(input);
-	free(token);
+	free(tokens);
 
 	printf("Donoso culiao\n");
 }
-
-
-

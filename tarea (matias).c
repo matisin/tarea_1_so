@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define   buffer_n 1000
 #define   SIZE 512
@@ -45,7 +46,8 @@ QUE SE ENCUENTREN EN /BIN, OSEA EJECUTABLES, POR EJ: ECHO, LS...
 */
 void checkcommand(char **tokens){
 	char *args[] = {tokens[0], tokens[1],tokens[2],(char *) 0 };
-	execvp(tokens[0],args);	
+	execvp(tokens[0],args);
+	printf("Command execute error: %s\n", strerror(errno));	
 	printf("%d\n",123 );
 }
 
