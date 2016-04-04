@@ -113,6 +113,7 @@ int main (int argc, char *argv[]) {
 					
 				dup2(p[1],1);
 				close(p[1]);
+				close(p[0]);
 				
 				checkcommand(tokens);
 				exit(EXIT_FAILURE);
@@ -124,6 +125,7 @@ int main (int argc, char *argv[]) {
 				if(pid == 0){
 					dup2(p[0],0);
 					close(p[0]);
+					close(p[1]);
 									
 					checkcommand(tokens_2); 
 					exit(EXIT_FAILURE);
@@ -139,7 +141,7 @@ int main (int argc, char *argv[]) {
 
 		else{
 
-			pipe(p);
+			
 
 			pid = fork();
 			//REVISA SI FORK FALLA
@@ -151,8 +153,8 @@ int main (int argc, char *argv[]) {
 
 			// ESTE ES EL PROCESO HIJO
 			else if (pid == 0) {
-				dup2(out,1);
-				close(out);
+				/*dup2(out,1);
+				close(out);*/
 				checkcommand(tokens);
 			
 				exit(EXIT_FAILURE);
@@ -164,7 +166,7 @@ int main (int argc, char *argv[]) {
 
 				int status;
 				(void)waitpid(pid, &status, 0); //Esto hace que el padre espere que termine el hijo.
-				//lo que haga el proceso padre tiene que ir despues de esta llamada.
+								//lo que haga el proceso padre tiene que ir despues de esta llamada.
 				
 			}
 			
