@@ -67,14 +67,21 @@ int main (int argc, char *argv[]) {
 	char *input = (char *) malloc(buffer_n*sizeof(char));
 	char **tokens = (char **) malloc(buffer_n*sizeof(char));
 	char **tokens_2 = (char **) malloc(buffer_n*sizeof(char));
-	int p[2],hay_pipe,i,readbytes,out;
+	int p[2],hay_pipe,i,readbytes,out,wea;
+	int log_[2];
 	
 	char buffer[SIZE];
 	int status = 0;
 
-//	out = open("log",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
- //	dup2(out,0);
- 	//close(out);
+
+
+	
+	//para copiar el stdin y out.
+	/*int stdin_copy = dup(0);
+	int stdout_copy = dup(1);
+	close(0);
+	close(1);*/
+
 	system("clear");
 	pid = fork();
 	if(pid == 0){
@@ -88,13 +95,17 @@ int main (int argc, char *argv[]) {
 		int status;
 		(void)waitpid(pid, &status, 0);
 	}
-	out = open("Log/mishel.log",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
- 	
+	wea= open("Log/mishel.log",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+
+ 	out = open("Logstio",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
  
 
 
 	while(1) {		
 
+
+ 	
+		
 		printPrompt();//imprime el prompt
 
 		fgets(input,buffer_n*sizeof(char),stdin);//leemos la entrada
@@ -111,25 +122,26 @@ int main (int argc, char *argv[]) {
 			pid = fork();
 			if(pid == 0){	
 					
-				dup2(p[1],1);
-				close(p[1]);
-				close(p[0]);
-				
+				dup2(p[1],1);			
+				close(p[0]);				
 				checkcommand(tokens);
 				exit(EXIT_FAILURE);
+
 			}else{
+
 				int status;
 				(void)waitpid(pid, &status, 0);
-
 				pid = fork();
+
 				if(pid == 0){
-					dup2(p[0],0);
-					close(p[0]);
-					close(p[1]);
-									
+
+					dup2(p[0],0);				
+					close(p[1]);									
 					checkcommand(tokens_2); 
 					exit(EXIT_FAILURE);
+
 				}else{
+
 					close(p[0]);
 					close(p[1]);
 					int status;
@@ -141,10 +153,14 @@ int main (int argc, char *argv[]) {
 
 		else{
 
+			/*int stdout_copy = dup(1);
+
+			close(1);*/
 			
 
 			pid = fork();
 			//REVISA SI FORK FALLA
+
 
 			if (pid == -1) {
 				perror("fork failed");
@@ -153,8 +169,11 @@ int main (int argc, char *argv[]) {
 
 			// ESTE ES EL PROCESO HIJO
 			else if (pid == 0) {
-				/*dup2(out,1);
-				close(out);*/
+				out = open("Logstio",O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+				
+				dup2(out,1);
+				close(out);
+
 				checkcommand(tokens);
 			
 				exit(EXIT_FAILURE);
@@ -162,11 +181,22 @@ int main (int argc, char *argv[]) {
 			}
 
 			// ESTE ES EL PROCESO PADRE
-			else {			
+			else {		
 
 				int status;
 				(void)waitpid(pid, &status, 0); //Esto hace que el padre espere que termine el hijo.
 								//lo que haga el proceso padre tiene que ir despues de esta llamada.
+				/*dup2(stdout_copy,1);
+				close(stdout_copy);
+				printf("%s",out);
+				write(out)*/
+				out = open("Logstio",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+				char c;
+				while (read(out, &c, sizeof(char)) != 0) {
+    				printf("%c", c);
+    				
+  				}close(out);
+  				
 				
 			}
 			
