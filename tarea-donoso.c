@@ -11,6 +11,7 @@
 #define   buffer_n 1000
 #define   SIZE 512
 
+
 // parsea un string de entrada
 //
 // return char **
