@@ -9,7 +9,6 @@
 #include <time.h>
 
 #define   buffer_n 1000
-#define   SIZE 512
 
 // parsea un string de entrada
 //
@@ -25,7 +24,7 @@ int parser(char *string,char **tokens,char **tokens_2){
 		
 		if(!hay_pipe)
 		{
-			if(*token=='|')
+			if(*token=='|')//si se encuentra el pipe
 			{
 				hay_pipe=1;
 				
@@ -51,6 +50,7 @@ void checkcommand(char **tokens){
 	char *args[] = {tokens[0], tokens[1],tokens[2],tokens[3],(char *) 0 };
 	execvp(tokens[0],args);
 	printf("Command execute error in %s: %s\n", tokens[0],strerror(errno) );	
+
 	
 }
 
@@ -61,7 +61,9 @@ void printPrompt(){
 
 	printf("minishell$ ");
 }
-
+//ejecuta comando sin pipe
+//
+// return void
 void command_normal(char **tokens){
 
 	pid_t pid;
@@ -69,7 +71,7 @@ void command_normal(char **tokens){
 	double time_spent;
 	int p[2],temp,mishell_log;
 
-	begin = clock();
+	begin = clock();//para medir el tiempo
 	pid = fork();
 
 	if (pid == -1) { //si falla el fork
@@ -113,7 +115,9 @@ void command_normal(char **tokens){
 				
 	}
 }
-
+//ejecuta comando con pipe
+//
+// return void
 void command_pipe(char **tokens, char **tokens_2){
 
 	pid_t pid;
@@ -125,7 +129,12 @@ void command_pipe(char **tokens, char **tokens_2){
 	pipe(p);//creamos el pipe
 	pid = fork();
 
-	if(pid == 0){	
+	if (pid == -1) { //si falla el fork
+
+		perror("fork failed");
+		exit(EXIT_FAILURE);
+
+	}else if(pid == 0){	
 					
 		dup2(p[1],1);//se redirecciona la salida del hijo que se ejecuta primero al pipe.	
 		close(p[0]);//cerramos la entrada del pipe.		
@@ -140,7 +149,7 @@ void command_pipe(char **tokens, char **tokens_2){
 		pid = fork();
 		if(pid == 0){
 
-			dup2(p[0],0);//se redirecciona la entra del hijo que se ejecuta segundo al pipe.			
+			dup2(p[0],0);//se redirecciona la entrada del hijo que se ejecuta segundo al pipe.			
 			close(p[1]);//cerramos la salida del pipe
 
 			//se abre el archivo que guarda el log temporalmente
@@ -150,7 +159,7 @@ void command_pipe(char **tokens, char **tokens_2){
 			checkcommand(tokens_2); 
 			exit(EXIT_FAILURE);
 
-		}else{
+		}else{//padre que espera los dos procesos
 
 			close(p[0]);
 			close(p[1]);
@@ -176,88 +185,161 @@ void command_pipe(char **tokens, char **tokens_2){
   			close(mishell_log);
   			remove(".logtemp");
 					
-		}								
+		}							
 	}
 }
+// se buscan las instancias de un comando en el log (salida + tiempo)
+//
+// return void
+void search_command(char **tokens){
 
+	int len = strlen(tokens[1]);//largo del comando
+	int mishell_log,i;
+
+	mishell_log= open("Log/mishell.log",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);//se abre el log
+	char c;
+	while (read(mishell_log, &c, sizeof(char)) != 0) {//recoremos hasta el fin de string
+		
+    	if(c == '@'){//el @ marca un comando en el log
+    		read(mishell_log, &c, sizeof(char));
+    		if(c == tokens[1][0]){
+    			for(i = 0 ; i < len - 1; i++){
+    				read(mishell_log, &c, sizeof(char));
+    				if(c != tokens[1][i+1]){
+    					break;//si el comando es distinto, seguimos buscando
+    				}
+    				if(i == len - 2){//si el comando es el mismo
+    					read(mishell_log, &c, sizeof(char));
+    					while(c != '\n'){//avanzamos por la linea completa del comando
+    						read(mishell_log, &c, sizeof(char));
+    					}
+    					read(mishell_log, &c, sizeof(char));
+    					while(c != '@'){//copiamos todo bajo la linea del comando hasta encontrarnos con otro comando y empieza otra vez.
+    						printf("%c",c);
+    						read(mishell_log, &c, sizeof(char));
+    					}
+    				}
+    			}
+    		}
+    	}
+    				
+  	} 
+  	close(mishell_log);//se cierra el archivo.
+
+}
+//despliega la lista de comandos utilizados en la sesión.
 void listCommand(int contador){
-	char archivo[] = "Log/.templog";
 	char *line = NULL;
 	FILE *fp;
 	size_t len = 0;
 	ssize_t read;
 
-	fp = fopen(archivo,"r");
+	int mishell_log;
+
+	fp = fopen("Log/.templog","r");//abrimos el archivo que contiene los comandos de la sesión
 	if(fp == NULL){
 		perror("Error opening log file");
 		exit(EXIT_FAILURE);
 	}
+	//abrimos el log para escribir lo que hicimos
+	mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);	
+
+	char number[4];
 	int count = 1;
 	while( (read = getline(&line, &len, fp)) != -1 ){
-		if(count == contador){
+		if(count == contador){//si llegamos al final de la lista
 			break;
 		}
+		sprintf(number,"%d.- ", count);
+		write(mishell_log,number,strlen(number)); //se guarda en numero de lista en el log
+		write(mishell_log,line,strlen(line)); //se guarda el comando leído en el log
 		printf("%d.- ", count);
 		printf("%s",line);
 		count++;
 	}
+	close(mishell_log);
 	fclose(fp);
 }
-
-void chooseCommand(char **tokens, char **tokens_2, int contador){
-	int num,hay_pipe;
-	listCommand(contador);
+//entrega una lista de comandos y ejecuta el seleccionado
+//
+// return void
+void chooseCommand(char **tokens, char **tokens_2, int *contador){
+	int num,hay_pipe,mishell_log;
+	listCommand(*contador);//despliega la lista
+	mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);	
+	write(mishell_log,"Seleccione número del comando que desea volver a ejecutar o presione 0 para salir.\n",84);	
 	printf("Seleccione número del comando que desea volver a ejecutar o presione 0 para salir.\n" );
+	//////
 	fflush(stdin);
 	scanf("%d", &num);
-	if(num != 0){
-		if(num >= contador){
+	fflush(stdin);
+	/////
+	char str[4];
+	sprintf(str,"%d\n",num);
+	write(mishell_log,str,strlen(str));//se guarda el numero seleccionado
+	close(mishell_log);
+
+	if(num != 0){//si no se seleccionó el 0
+		if(num >= *contador){//si el numero es mayor que el numero de comandos usados, el comando no existiria.
 			printf("Error, no existe comando\n");
+			mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);	
+			write(mishell_log,"Error, no existe comando\n",25);
+			close(mishell_log);
 		}
 		else{
-			char archivo[] = "Log/.templog";
 			char *line = NULL;
 			FILE *fp;
 			size_t len = 0;
 			ssize_t read;	
 
-			fp = fopen(archivo,"r");
+			fp = fopen("Log/.templog","r");//abrimos el archivo que tiene los comandos de la sesión
 			if(fp == NULL){
 				perror("Error opening log file");
 				exit(EXIT_FAILURE);
 			}
 			int count = 1;
 			while( (read = getline(&line, &len, fp)) != -1 ){
-				if(num == count){
-					printf("%s\n",line);
-					hay_pipe = parser(line,tokens,tokens_2);	
+				if(num == count){//si avanzamos hasta la linea seleccionada
+					printf("%s",line);//se imprime el comando
+					mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);	
+					write(mishell_log,"@",1);
+					write(mishell_log,line,strlen(line)); //se guarda el comando leído en el log
+					close(mishell_log);
+
+					hay_pipe = parser(line,tokens,tokens_2);//obtienen los tokens y la informacion sobre pipe
 
 					if(hay_pipe){	
 
-						command_pipe(tokens,tokens_2);			
+						command_pipe(tokens,tokens_2);//ejecutamos los comandos con pipe		
 					}				
 
 					else{
-						if(strcmp(tokens[0], "DELETE_LOG") == 0 ){
+						if(strcmp(tokens[0], "DELETE_LOG") == 0 ){//si el comando es delete log se borra el log
 							remove("Log/mishell.log");
 							printf("Se ha borró el log \n");						
 							
 						}					
 
-						else if(strcmp(tokens[0], "CHOOSE_COMMAND") == 0){
+						else if(strcmp(tokens[0], "CHOOSE_COMMAND") == 0){//no se puede ejecutar choose_command de nuevo
 							printf("No se puede hacer CHOOSE_COMMAND desde CHOOSE_COMMAND\n");					
 						
 						}			
 
 						else if(strcmp(tokens[0], "LIST_COMMAND") == 0){
-							listCommand(contador);
+							printf("No se puede hacer LIST_COMMAND desde CHOOSE_COMMAND\n");
 							
-						}else {
-							command_normal(tokens);		
+						}else if(strcmp(tokens[0],"SEARCH_COMMAND") == 0){
+
+							search_command(tokens);
+							
+						}
+						else {
+							command_normal(tokens);	//ejecutamos los comandos sin pipe
 
 						}
 												
 					}	
+					*contador++;//aumentamos la cantidad de comandos ya que agregamos el comando seleccionado
 					
 				}
 				count++;
@@ -324,7 +406,7 @@ int main (int argc, char *argv[]) {
 
 		if(strcmp(tokens[0], "DELETE_LOG") == 0 ){
 			remove("Log/mishell.log");
-			printf("Se ha borró el log \n");
+			printf("Se ha borrado el log \n");
 			continue;
 		}
 
@@ -333,12 +415,17 @@ int main (int argc, char *argv[]) {
 		}
 
 		if(strcmp(tokens[0], "CHOOSE_COMMAND") == 0){
-			chooseCommand(tokens,tokens_2,contador);
+			chooseCommand(tokens,tokens_2,&contador);
 			continue;
 		}
 
 		if(strcmp(tokens[0], "LIST_COMMAND") == 0){
 			listCommand(contador);
+			continue;
+		}
+
+		if(strcmp(tokens[0],"SEARCH_COMMAND") == 0){
+			search_command(tokens);
 			continue;
 		}
 
