@@ -180,7 +180,7 @@ void command_pipe(char **tokens, char **tokens_2){
 	}
 }
 
-void listCommand(){
+void listCommand(int contador){
 	char archivo[] = "Log/.templog";
 	char *line = NULL;
 	FILE *fp;
@@ -194,51 +194,78 @@ void listCommand(){
 	}
 	int count = 1;
 	while( (read = getline(&line, &len, fp)) != -1 ){
+		if(count == contador){
+			break;
+		}
 		printf("%d.- ", count);
-		printf("%s\n",line);
+		printf("%s",line);
 		count++;
 	}
 	fclose(fp);
 }
 
-void chooseCommand(char **tokens, char **tokens_2){
+void chooseCommand(char **tokens, char **tokens_2, int contador){
 	int num,hay_pipe;
-	listCommand();
-	puts("Seleccione número del comando que desea volver a ejecutar o 0: \n");
+	listCommand(contador);
+	printf("Seleccione número del comando que desea volver a ejecutar o presione 0 para salir.\n" );
+	fflush(stdin);
 	scanf("%d", &num);
 	if(num != 0){
-		char archivo[] = "Log/.templog";
-		char *line = NULL;
-		FILE *fp;
-		size_t len = 0;
-		ssize_t read;
-
-		fp = fopen(archivo,"r");
-		if(fp == NULL){
-			perror("Error opening log file");
-			exit(EXIT_FAILURE);
+		if(num >= contador){
+			printf("Error, no existe comando\n");
 		}
-		int count = 1;
-		while( (read = getline(&line, &len, fp)) != -1 ){
-			if(num == count){
-				printf("%s\n",line);
-				hay_pipe = parser(line,tokens,tokens_2);
+		else{
+			char archivo[] = "Log/.templog";
+			char *line = NULL;
+			FILE *fp;
+			size_t len = 0;
+			ssize_t read;	
 
-				if(hay_pipe){
-
-					command_pipe(tokens,tokens_2);			
-				}			
-
-				else{
-
-					command_normal(tokens);	
-						
-				}	
-				
+			fp = fopen(archivo,"r");
+			if(fp == NULL){
+				perror("Error opening log file");
+				exit(EXIT_FAILURE);
 			}
-			count++;
+			int count = 1;
+			while( (read = getline(&line, &len, fp)) != -1 ){
+				if(num == count){
+					printf("%s\n",line);
+					hay_pipe = parser(line,tokens,tokens_2);	
+
+					if(hay_pipe){	
+
+						command_pipe(tokens,tokens_2);			
+					}				
+
+					else{
+						if(strcmp(tokens[0], "DELETE_LOG") == 0 ){
+							remove("Log/mishell.log");
+							printf("Se ha borró el log \n");						
+							
+						}					
+
+						else if(strcmp(tokens[0], "CHOOSE_COMMAND") == 0){
+							printf("No se puede hacer CHOOSE_COMMAND desde CHOOSE_COMMAND\n");					
+						
+						}			
+
+						else if(strcmp(tokens[0], "LIST_COMMAND") == 0){
+							listCommand(contador);
+							
+						}else {
+							command_normal(tokens);		
+
+						}
+												
+					}	
+					
+				}
+				count++;
+			}
+			fclose(fp);
+
 		}
-		fclose(fp);
+		
 	}	
 
 }
@@ -251,6 +278,7 @@ int main (int argc, char *argv[]) {
 	char **tokens_2 = (char **) malloc(buffer_n*sizeof(char));
 	
 	int hay_pipe,i,mishell_log,templog;
+	int contador = 0;
 
 	system("clear");
 	remove("Log/.templog");
@@ -274,6 +302,7 @@ int main (int argc, char *argv[]) {
 		
 		printPrompt();//imprime el prompt
 
+		
 		fgets(input,buffer_n*sizeof(char),stdin);//leemos la entrada
 
 		if(*input == '\n') { //se compara el primer caracter primero
@@ -289,6 +318,8 @@ int main (int argc, char *argv[]) {
 		write(templog,input,strlen(input)); //se van guardando en un archivo aparte los commandos de la sesión.
 		close(templog);
 
+		contador++;//contador de comandos de la sesión.
+
 		hay_pipe = parser(input,tokens,tokens_2); //se guardan los tokens y se retorna si hay pipe o no	
 
 		if(strcmp(tokens[0], "DELETE_LOG") == 0 ){
@@ -302,12 +333,12 @@ int main (int argc, char *argv[]) {
 		}
 
 		if(strcmp(tokens[0], "CHOOSE_COMMAND") == 0){
-			chooseCommand(tokens,tokens_2);
+			chooseCommand(tokens,tokens_2,contador);
 			continue;
 		}
 
 		if(strcmp(tokens[0], "LIST_COMMAND") == 0){
-			listCommand();
+			listCommand(contador);
 			continue;
 		}
 
