@@ -110,6 +110,7 @@ void command_normal(char **tokens){
   				
   		//se cierran los archivos y se borra el log temporal.
   		close(temp);
+  		write(mishell_log,"~",1);
   		close(mishell_log);
   		remove(".logtemp"); 			
 				
@@ -182,7 +183,11 @@ void command_pipe(char **tokens, char **tokens_2){
   			}  			
   			//se cierran los archivos y se borra el log temporal.
   			close(temp);
+  		
+			write(mishell_log,"~",1);
+				
   			close(mishell_log);
+
   			remove(".logtemp");
 					
 		}							
@@ -214,7 +219,7 @@ void search_command(char **tokens){
     						read(mishell_log, &c, sizeof(char));
     					}
     					read(mishell_log, &c, sizeof(char));
-    					while(c != '@'){//copiamos todo bajo la linea del comando hasta encontrarnos con otro comando y empieza otra vez.
+    					while(c != '~'){//copiamos todo bajo la linea del comando hasta encontrarnos con otro comando y empieza otra vez.
     						printf("%c",c);
     						read(mishell_log, &c, sizeof(char));
     					}
