@@ -51,6 +51,7 @@ void checkcommand(char **tokens){
 	char *args[] = {tokens[0], tokens[1],tokens[2],tokens[3],(char *) 0 };
 	execvp(tokens[0],args);
 	printf("Command execute error in %s: %s\n", tokens[0],strerror(errno) );	
+
 	
 }
 
@@ -176,8 +177,44 @@ void command_pipe(char **tokens, char **tokens_2){
   			close(mishell_log);
   			remove(".logtemp");
 					
-		}								
+		}							
 	}
+}
+
+void search_command(char **tokens){
+	int len = strlen(tokens[1]);
+	int mishell_log,i;
+
+	mishell_log= open("Log/mishell.log",O_RDONLY , S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);	
+	char c;
+	while (read(mishell_log, &c, sizeof(char)) != 0) {
+		
+    	if(c == '@'){
+    		read(mishell_log, &c, sizeof(char));
+    		if(c == tokens[1][0]){
+    			for(i = 0 ; i < len - 1; i++){
+    				read(mishell_log, &c, sizeof(char));
+    				if(c != tokens[1][i+1]){
+    					break;
+    				}
+    				if(i == len - 2){
+    					read(mishell_log, &c, sizeof(char));
+    					while(c != '\n'){
+    						read(mishell_log, &c, sizeof(char));
+    					}
+    					read(mishell_log, &c, sizeof(char));
+    					while(c != '@'){
+    						printf("%c",c);
+    						read(mishell_log, &c, sizeof(char));
+    					}
+    				}
+    			}
+    		}
+    	}
+    				
+  	} 
+  	close(mishell_log) ;	
+
 }
 
 void listCommand(int contador){
@@ -187,32 +224,55 @@ void listCommand(int contador){
 	size_t len = 0;
 	ssize_t read;
 
+	int mishell_log;
+
 	fp = fopen(archivo,"r");
 	if(fp == NULL){
 		perror("Error opening log file");
 		exit(EXIT_FAILURE);
 	}
+	mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);	
+
+	
+
+	char number[4];
 	int count = 1;
 	while( (read = getline(&line, &len, fp)) != -1 ){
 		if(count == contador){
 			break;
 		}
+		sprintf(number,"%d.- ", count);
+		write(mishell_log,number,strlen(number)); //se guarda el comando leído en el log
+		write(mishell_log,line,strlen(line)); //se guarda el comando leído en el log
 		printf("%d.- ", count);
 		printf("%s",line);
 		count++;
 	}
+	close(mishell_log);
 	fclose(fp);
 }
 
-void chooseCommand(char **tokens, char **tokens_2, int contador){
-	int num,hay_pipe;
-	listCommand(contador);
+void chooseCommand(char **tokens, char **tokens_2, int *contador){
+	int num,hay_pipe,mishell_log;
+	listCommand(*contador);
+	mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);	
+	write(mishell_log,"Seleccione número del comando que desea volver a ejecutar o presione 0 para salir.\n",84);	
 	printf("Seleccione número del comando que desea volver a ejecutar o presione 0 para salir.\n" );
 	fflush(stdin);
 	scanf("%d", &num);
+	fflush(stdin);
+
+	char str[4];
+	sprintf(str,"%d\n",num);
+	write(mishell_log,str,strlen(str));
+	close(mishell_log);
+
 	if(num != 0){
-		if(num >= contador){
+		if(num >= *contador){
 			printf("Error, no existe comando\n");
+			mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);	
+			write(mishell_log,"Error, no existe comando\n",25);
+			close(mishell_log);
 		}
 		else{
 			char archivo[] = "Log/.templog";
@@ -229,7 +289,12 @@ void chooseCommand(char **tokens, char **tokens_2, int contador){
 			int count = 1;
 			while( (read = getline(&line, &len, fp)) != -1 ){
 				if(num == count){
-					printf("%s\n",line);
+					printf("%s",line);
+					mishell_log= open("Log/mishell.log",O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);	
+					write(mishell_log,"@",1);
+					write(mishell_log,line,strlen(line)); //se guarda el comando leído en el log
+					close(mishell_log);
+
 					hay_pipe = parser(line,tokens,tokens_2);	
 
 					if(hay_pipe){	
@@ -250,14 +315,20 @@ void chooseCommand(char **tokens, char **tokens_2, int contador){
 						}			
 
 						else if(strcmp(tokens[0], "LIST_COMMAND") == 0){
-							listCommand(contador);
+							printf("No se puede hacer LIST_COMMAND desde CHOOSE_COMMAND\n");
 							
-						}else {
+						}else if(strcmp(tokens[0],"SEARCH_COMMAND") == 0){
+
+							search_command(tokens);
+							
+						}
+						else {
 							command_normal(tokens);		
 
 						}
 												
 					}	
+					*contador++;
 					
 				}
 				count++;
@@ -324,7 +395,7 @@ int main (int argc, char *argv[]) {
 
 		if(strcmp(tokens[0], "DELETE_LOG") == 0 ){
 			remove("Log/mishell.log");
-			printf("Se ha borró el log \n");
+			printf("Se ha borrado el log \n");
 			continue;
 		}
 
@@ -333,12 +404,17 @@ int main (int argc, char *argv[]) {
 		}
 
 		if(strcmp(tokens[0], "CHOOSE_COMMAND") == 0){
-			chooseCommand(tokens,tokens_2,contador);
+			chooseCommand(tokens,tokens_2,&contador);
 			continue;
 		}
 
 		if(strcmp(tokens[0], "LIST_COMMAND") == 0){
 			listCommand(contador);
+			continue;
+		}
+
+		if(strcmp(tokens[0],"SEARCH_COMMAND") == 0){
+			search_command(tokens);
 			continue;
 		}
 
