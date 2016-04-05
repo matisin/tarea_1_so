@@ -1,0 +1,50 @@
+
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+%Gummi|065|=)
+\title{\textbf{Tarea Sistemas Operativos: MiniShell}}
+\author{Cristóbal Donoso Oliva\\
+		Matías Medina Silva\\
+		Diego Rodríguez Mancini}
+\date{}
+\begin{document}
+
+\maketitle
+
+\section{Introducción}
+Una terminal o shell es un programa que permite de manera fácil para el usuario la ejecución de comandos. Pero usualmente no nos preguntamos cómo el sistema operativo maneja la ejecución de éstos comandos, o que hace internamente la shell.
+
+En el desarrollo de ésta tarea implementamos una minishell, que ejecuta comandos con un pipe y hasta tres argumentos.
+
+
+\section{Desarrollo}
+Lo primero que la minishell hace es parsear la entrada. Esto es, separar los comandos y sus argumentos en tokens, que posteriormente serán tratados como comandos en procesos distintos.
+
+Si el comando ejecutado es sin pipe, entonces se usa la llamada a sistema fork, que crea un nuevo proceso el cual ejecuta el comando ingresado a la shell y cuya salida es enviada a un archivo temporal usando la llamada a sistema dup2.
+
+El proceso padre, espera que termine la ejecución del hijo y cuando termina, mide el tiempo de ejecución del proceso hijo y guarda en un archivo log ese tiempo.
+Luego copia el contenido del archivo temporal al log, usando la llamada a sistema write e imprime ese contenido en pantalla.
+
+De esta manera se obtiene la salida del proceso en la shell y además queda guardada en el log.
+
+Cuando el comando ingresado utiliza pipe, se usa fork dos veces, de manera que el proceso padre tiene un hijo, que llamaremos hijo1 y éste a su vez tiene otro hijo,que llamaremos hijo2, el cual ejecuta el comando antes del pipe y redirecciona la salida al hijo1 usando dup2.
+
+El hijo1 espera a que termine el proceso hijo2, ejecuta los comandos a la derecha del pipe y envía la salida a un archivo temporal.
+
+El proceso padre mide el tiempo de ejecución del proceso hijo y guarda en el log el tiempo. Luego copia el contenido del archivo temporal al log e imprime el contenido en pantalla de la misma manera que lo hace en el caso sin pipe.
+
+No solo las salidas de los comandos son almacenadas en el log, también los distintos comandos ingresados. Éstos se guardan en el log utilizando la llamada write.
+
+\subsection{Otras funciones de la shell}
+Hemos mencionado como se ejecutan los distintos comandos ingresados en esta shell, pero además de ejecutar comandos la minishell posee otras propiedades.
+
+Ingresando el comando "LIST\_COMMAND" podemos ver todos los comandos ingresados en una sesión de la minishell.
+
+Ingresando el comando "CHOOSE\_COMMAND" podemos ver los comandos ingresados en una lista y elejir el que queramos para reejecutarlo.
+
+La ejecución de estos comandos conciste en que guardamos en un log temporal sólamente los comandos ingresados, sin sus salidas
+
+\section{Conclusiones}
+
+
+\end{document}
